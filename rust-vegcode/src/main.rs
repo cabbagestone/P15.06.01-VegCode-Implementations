@@ -1,6 +1,8 @@
 use chrono::{prelude::*, Duration};
 
 fn main() {
+    println!("Vegcode: {}", to_vegcode());
+    //from_vegcode(String::from(""));
     from_vegcode(to_vegcode());
 }
 
