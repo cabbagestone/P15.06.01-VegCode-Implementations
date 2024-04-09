@@ -1,6 +1,10 @@
 use chrono::prelude::*;
 
 fn main() {
+    print!("{}", to_vercode());
+}
+
+fn to_vercode() -> String {
     let vercode_version = String::from("0");
 
     let flag_author = false;
@@ -74,9 +78,11 @@ fn main() {
         vercode.push_str(&created_date_base62);
     }
 
-    println!("{}", vercode);
+    vercode
+}
 
-    // now process the vercode to get the values back
+fn from_vercode(vercode: String) {
+
 
     let vercode_version = vercode.chars().nth(0).unwrap().to_string();
     let flags_base64 = vercode.chars().skip(1).take(1).collect::<String>();
@@ -126,8 +132,6 @@ fn main() {
             .take(4)
             .collect::<String>();
     }
-
-
 }
 
 fn sacsi_id_to_base10(sacsi_id: String) -> u64 {

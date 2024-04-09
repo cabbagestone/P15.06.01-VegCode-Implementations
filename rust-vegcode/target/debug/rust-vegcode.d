@@ -1,1 +1,0 @@
-/home/cabbage/P-Personal-Projects/P10-P19-Software/P15-Second-Brain/P15.06-VegCode/P15.06.01-Implementations/rust-vegcode/target/debug/rust-vegcode: /home/cabbage/P-Personal-Projects/P10-P19-Software/P15-Second-Brain/P15.06-VegCode/P15.06.01-Implementations/rust-vegcode/src/main.rs
