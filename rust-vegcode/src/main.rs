@@ -1,9 +1,9 @@
-use chrono::{prelude::*, Duration};
+use chrono::{prelude::NaiveDate, Duration};
 
 fn main() {
     println!("Vegcode: {}", to_vegcode());
-    //from_vegcode(String::from(""));
-    from_vegcode(to_vegcode());
+    from_vegcode(String::from("0zHg7Yau02iY1"));
+    // from_vegcode(to_vegcode()); run this to verify that the conversion works both ways
 }
 
 fn to_vegcode() -> String {
