@@ -2,27 +2,27 @@ use chrono::{prelude::NaiveDate, Duration};
 
 fn main() {
     println!("Vegcode: {}", to_vegcode());
-    from_vegcode(String::from("0zHg7Yau02iY1"));
+    // from_vegcode(String::from("0zHg7Yau02iY1"));
     // from_vegcode(to_vegcode()); run this to verify that the conversion works both ways
 }
 
 fn to_vegcode() -> String {
+    let mut vegcode = String::new();
+
     let vegcode_version = String::from("0");
+    vegcode.push_str(&vegcode_version);
 
     let flag_author = true;
     let flag_draft = true;
     let flag_archive = false;
-
-    let mut flag_v2_4 = false;
-
     let sacsi_id = String::from("J31.01.02");
-    let v2_version = String::from("04.03.00");
-    let created_date = String::from("2024-04-08");
-    let last_updated_date = String::from("2024-04-09");
+    let v2_version = String::from(""); //04.03.00");
+    let created_date = String::from(""); //2024-04-08");
+    let last_updated_date = String::from(""); //2024-04-09");
 
-    let mut vegcode = String::new();
     let mut flags = String::from("000000");
     let mut v2_base62 = String::new();
+    let mut flag_v2_4 = false;
 
     set_binary_string_bit(&mut flags, 5, flag_author);
     set_binary_string_bit(&mut flags, 4, flag_draft);
@@ -30,8 +30,15 @@ fn to_vegcode() -> String {
 
     let flag_versioned_file = v2_version.len() != 0;
 
-    if !flag_versioned_file && last_updated_date.len() > 0 {
+    let has_created_date = created_date.len() > 0;
+    let has_last_updated_date = last_updated_date.len() > 0;
+
+    if !flag_versioned_file && has_last_updated_date {
         panic!("Modified date is set on an unversioned file");
+    }
+
+    if has_last_updated_date && !has_created_date {
+        panic!("Modified date is set without a created date");
     }
 
     if flag_versioned_file {
@@ -48,10 +55,18 @@ fn to_vegcode() -> String {
     set_binary_string_bit(&mut flags, 0, flag_versioned_file);
 
     let flags_base64 = base2_to_friendly64(flags);
+    vegcode.push_str(&flags_base64);
+    vegcode.push_str(&sacsi_base62);
+
+    if flag_versioned_file {
+        vegcode.push_str(&v2_base62);
+    }
+
+    if !has_created_date {
+        return vegcode;
+    }
 
     let created_datetime = NaiveDate::parse_from_str(&created_date, "%Y-%m-%d").unwrap();
-    let last_updated_datetime = NaiveDate::parse_from_str(&last_updated_date, "%Y-%m-%d").unwrap();
-
     let days_between_created_datetime_and_jan_1_2000 = created_datetime
         .signed_duration_since(
             NaiveDate::from_ymd_opt(2000, 1, 1)
@@ -60,25 +75,24 @@ fn to_vegcode() -> String {
         )
         .num_days();
 
-    let days_between_updated_datetime_and_created_datetime = last_updated_datetime
-        .signed_duration_since(created_datetime)
-        .num_days();
-
     let created_date_base62 = base10_to_base62(days_between_created_datetime_and_jan_1_2000 as u64);
+
+    vegcode.push_str(&created_date_base62);
+
+    if !has_last_updated_date {
+        return vegcode;
+    }
+
+    let days_between_updated_datetime_and_created_datetime =
+        NaiveDate::parse_from_str(&last_updated_date, "%Y-%m-%d")
+            .unwrap()
+            .signed_duration_since(created_datetime)
+            .num_days();
+
     let last_updated_date_base62 =
         base10_to_base62(days_between_updated_datetime_and_created_datetime as u64);
 
-    vegcode.push_str(&vegcode_version);
-    vegcode.push_str(&flags_base64);
-    vegcode.push_str(&sacsi_base62);
-
-    if flag_versioned_file {
-        vegcode.push_str(&v2_base62);
-        vegcode.push_str(&created_date_base62);
-        vegcode.push_str(&last_updated_date_base62);
-    } else {
-        vegcode.push_str(&created_date_base62);
-    }
+    vegcode.push_str(&last_updated_date_base62);
 
     vegcode
 }
