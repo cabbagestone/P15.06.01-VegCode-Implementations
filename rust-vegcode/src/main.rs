@@ -14,11 +14,11 @@ fn to_vegcode() -> String {
     let vegcode_version = String::from("0");
     vegcode.push_str(&vegcode_version);
 
-    let flag_author = true;
-    let flag_draft = true;
+    let flag_author = false;
+    let flag_draft = false;
     let flag_archive = false;
-    let sacsi_id = String::from("J31.01.02");
-    let v2_version = String::from(""); //04.03.00");
+    let sacsi_id = String::from("A21.01.01");
+    let v2_version = String::from(""); //1.0.0");
     let created_date = String::from("2024-04-08");
     let last_updated_date = String::from(""); //2024-04-09");
 
@@ -333,6 +333,9 @@ fn base2_to_base10(string_binary: String) -> u64 {
 fn base10_to_friendly64(num: u64) -> String {
     let mut base64 = String::new();
     let mut num = num;
+    if num == 0 {
+        return "0".to_string();
+    }
     while num > 0 {
         let remainder = num % 64;
         base64.push(get_friendly64_char(remainder));
