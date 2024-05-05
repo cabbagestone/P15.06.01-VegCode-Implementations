@@ -1,26 +1,25 @@
-use chrono::{prelude::NaiveDate, Duration};
+use chrono::{Duration, NaiveDate};
 
-fn main() {
-    let vegcode = to_vegcode();
-    // println!("Vegcode: {}", to_vegcode());
-    // from_vegcode(String::from("0zHg7Yau0"));
-    println!("Vegcode: {}", vegcode);
-    from_vegcode(vegcode);
-}
-
-fn to_vegcode() -> String {
-    let mut vegcode = String::new();
+pub fn to_vegcode(
+    flag_author: bool,
+    flag_draft: bool,
+    flag_archive: bool,
+    sacsi_id: String,
+    v2_version: String,
+    created_date: String,
+    last_updated_date: String,
+) -> String {
+    let mut vegcode_parsed = VegCodeParsed {
+        vegcode_version: "".to_string(),
+        flags: "".to_string(),
+        sacsi_id: "".to_string(),
+        v2_version: "".to_string(),
+        created_date: "".to_string(),
+        last_updated_date: "".to_string(),
+    };
 
     let vegcode_version = String::from("0");
-    vegcode.push_str(&vegcode_version);
-
-    let flag_author = false;
-    let flag_draft = false;
-    let flag_archive = false;
-    let sacsi_id = String::from("A21.01.01");
-    let v2_version = String::from(""); //1.0.0");
-    let created_date = String::from("2024-04-08");
-    let last_updated_date = String::from(""); //2024-04-09");
+    vegcode_parsed.vegcode_version = vegcode_version.clone();
 
     let mut flags = String::from("000000");
     let mut v2_base62 = String::new();
@@ -57,15 +56,15 @@ fn to_vegcode() -> String {
     set_binary_string_bit(&mut flags, 0, flag_versioned_file);
 
     let flags_base64 = base2_to_friendly64(flags);
-    vegcode.push_str(&flags_base64);
-    vegcode.push_str(&sacsi_base62);
+    vegcode_parsed.flags = flags_base64.clone();
+    vegcode_parsed.sacsi_id = sacsi_base62.clone();
 
     if flag_versioned_file {
-        vegcode.push_str(&v2_base62);
+        vegcode_parsed.v2_version = v2_base62.clone();
     }
 
     if !has_created_date {
-        return vegcode;
+        return vegcode_parsed_to_vegcode(vegcode_parsed);
     }
 
     let created_datetime = NaiveDate::parse_from_str(&created_date, "%Y-%m-%d").unwrap();
@@ -79,10 +78,10 @@ fn to_vegcode() -> String {
 
     let created_date_base62 = base10_to_base62(days_between_created_datetime_and_jan_1_2000 as u64);
 
-    vegcode.push_str(&created_date_base62);
+    vegcode_parsed.created_date = created_date_base62.clone();
 
     if !has_last_updated_date {
-        return vegcode;
+        return vegcode_parsed_to_vegcode(vegcode_parsed);
     }
 
     let days_between_updated_datetime_and_created_datetime =
@@ -94,16 +93,78 @@ fn to_vegcode() -> String {
     let last_updated_date_base62 =
         base10_to_base62(days_between_updated_datetime_and_created_datetime as u64);
 
-    vegcode.push_str(&last_updated_date_base62);
+    vegcode_parsed.last_updated_date = last_updated_date_base62.clone();
+
+    vegcode_parsed_to_vegcode(vegcode_parsed)
+}
+
+fn vegcode_parsed_to_vegcode(parsed: VegCodeParsed) -> String {
+    let mut vegcode = String::new();
+
+    if parsed.vegcode_version.len() > 0 {
+        vegcode.push_str(&parsed.vegcode_version);
+    }
+
+    if parsed.flags.len() > 0 {
+        vegcode.push_str(&parsed.flags);
+    }
+
+    if parsed.sacsi_id.len() > 0 {
+        vegcode.push_str(&parsed.sacsi_id);
+    }
+
+    if parsed.v2_version.len() > 0 {
+        vegcode.push_str(&parsed.v2_version);
+    }
+
+    if parsed.created_date.len() > 0 {
+        vegcode.push_str(&parsed.created_date);
+    }
+
+    if parsed.last_updated_date.len() > 0 {
+        vegcode.push_str(&parsed.last_updated_date);
+    }
 
     vegcode
 }
 
-fn from_vegcode(vegcode: String) {
+// These are in the order that they should appear in the VegCode
+pub struct VegCodeParsed {
+    vegcode_version: String,
+    flags: String,
+    sacsi_id: String,
+    v2_version: String,
+    created_date: String,
+    last_updated_date: String,
+}
+
+pub struct VegcodeDetails {
+    pub vegcode_version: String,
+    pub flag_author: bool,
+    pub flag_draft: bool,
+    pub flag_archive: bool,
+    pub sacsi_id: String,
+    pub v2_version: String,
+    pub created_date: String,
+    pub last_updated_date: String,
+}
+
+pub fn from_vegcode(vegcode: String) -> VegcodeDetails {
+    let mut vegcode_details = VegcodeDetails {
+        vegcode_version: "".to_string(),
+        flag_author: false,
+        flag_draft: false,
+        flag_archive: false,
+        sacsi_id: "".to_string(),
+        v2_version: "".to_string(),
+        created_date: "".to_string(),
+        last_updated_date: "".to_string(),
+    };
+
     let mut vegcode_iterator = vegcode.chars();
 
     let vegcode_version = vegcode_iterator.next().unwrap().to_string();
-    println!("Vegcode version: {}", vegcode_version);
+    vegcode_details.vegcode_version = vegcode_version;
 
     let flags_base64 = vegcode_iterator.next().unwrap().to_string();
 
@@ -119,9 +180,9 @@ fn from_vegcode(vegcode: String) {
     let read_flag_draft = flags.next().unwrap() == '1';
     let read_flag_author = flags.next().unwrap() == '1';
 
-    println!("I'm the Author: {}", read_flag_author);
-    println!("File is Draft: {}", read_flag_draft);
-    println!("File is Archived: {}", read_flag_archive);
+    vegcode_details.flag_author = read_flag_author;
+    vegcode_details.flag_draft = read_flag_draft;
+    vegcode_details.flag_archive = read_flag_archive;
 
     let sacsi_length = if read_flag_sacsi_5 { 5 } else { 4 };
     let v2_length = if read_flag_v2_4 { 4 } else { 3 };
@@ -129,9 +190,8 @@ fn from_vegcode(vegcode: String) {
     let vegcode_vec: Vec<char> = vegcode_iterator.collect();
     let sacsi_base62 = vegcode_vec.iter().take(sacsi_length).collect();
     let sacsi_id = base62_to_sacsi_id(sacsi_base62);
-    println!("Sacsi ID: {}", sacsi_id);
+    vegcode_details.sacsi_id = sacsi_id;
 
-    let mut v2_version = String::new();
     let mut last_updated_date = 0;
     let created_date_base62;
 
@@ -155,8 +215,8 @@ fn from_vegcode(vegcode: String) {
             .skip(sacsi_length + v2_length + 3)
             .collect();
 
-        v2_version = base62_to_period_separated_string(v2_base62);
-        println!("V2 Version: {}", v2_version);
+        let v2_version = base62_to_period_separated_string(v2_base62);
+        vegcode_details.v2_version = v2_version;
         last_updated_date = base62_to_base10(last_updated_date_base62);
     }
 
@@ -164,7 +224,7 @@ fn from_vegcode(vegcode: String) {
     let has_created_date = created_date > 0;
 
     if !has_created_date {
-        return;
+        return vegcode_details;
     }
 
     let created_datetime = NaiveDate::from_ymd_opt(2000, 1, 1)
@@ -173,17 +233,19 @@ fn from_vegcode(vegcode: String) {
         + Duration::days(created_date as i64);
 
     let created_datetime_string = created_datetime.format("%Y-%m-%d").to_string();
-    println!("Created date: {}", created_datetime_string);
+    vegcode_details.created_date = created_datetime_string;
 
     let last_updated_datetime = created_datetime + Duration::days(last_updated_date as i64);
 
-    if !last_updated_date > 0 {
-        return;
+    if !(last_updated_date > 0) {
+        return vegcode_details;
     }
 
     let last_updated_datetime_string = last_updated_datetime.format("%Y-%m-%d").to_string();
 
-    println!("Last updated date: {}", last_updated_datetime_string);
+    vegcode_details.last_updated_date = last_updated_datetime_string;
+
+    vegcode_details
 }
 
 fn base62_to_period_separated_string(string_base62: String) -> String {
@@ -234,7 +296,7 @@ fn base10_to_period_separated_string(num: u64) -> String {
     let mut num = num;
     while num > 0 {
         let remainder = num % 100;
-        string.push_str(&remainder.to_string());
+        string.push_str(&remainder.to_string().chars().rev().collect::<String>());
         if remainder < 10 {
             string.push('0');
         }
